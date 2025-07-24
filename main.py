@@ -1,3 +1,4 @@
+import random
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -5,17 +6,27 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
+
 # Конфигурация
-BOT_TOKEN = "7604459732:AAE49WdblJZh_GyspEfJetWLm-PZUv1vRBI"  # Замените на токен от @BotFather
-CHANNEL_ID = "@tgksample"     # Замените на username канала (например: "@my_test_channel")
+BOT_TOKEN = "7604459732:AAE49WdblJZh_GyspEfJetWLm-PZUv1vRBI" 
+CHANNEL_ID = "@tgksample"   
 
 # Инициализация объектов
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-HARDCODED_TEXT = "https://www.twitch.tv/zombyaak_doto"
-HARDCODED_PHOTO_URL = "https://i.pinimg.com/736x/10/64/17/1064170e45d615504439a05be4d88c5c.jpg"  # Замените на реальную ссылку
-CUSTOM_TEXT = "🚀 Пользовательский текст с фото!"
+HARDCODED_TEXT = "Гоугоу на стрим!\nhttps://www.twitch.tv/zombyaak_doto"
+HARDCODED_PHOTO_URL_MASSIVE = ['https://i.pinimg.com/736x/cc/34/7d/cc347d12e404f89e0320d40722a81725.jpg',
+                       'https://i.pinimg.com/1200x/4f/eb/17/4feb17bad5cd72657ea01ea0636af713.jpg',
+                       'https://i.pinimg.com/736x/5e/8c/51/5e8c51327816359990e7d9bc9c529ca4.jpg',
+                       'https://i.pinimg.com/736x/c4/92/74/c49274ba06f2bcaee5fe504b43debfa5.jpg',
+                       'https://i.pinimg.com/736x/98/aa/82/98aa82435e568d15da5b44014ee90277.jpg']
+
+CUSTOM_TEXT = "Гоугоу на стрим!\nhttps://www.twitch.tv/zombyaak_doto"
+"https://i.pinimg.com/736x/10/64/17/1064170e45d615504439a05be4d88c5c.jpg"  
+
+
+
 
 # Инициализация бота
 bot = Bot(token=BOT_TOKEN)
@@ -25,49 +36,112 @@ dp = Dispatcher()
 class Form(StatesGroup):
     waiting_for_text = State()
     waiting_for_photo = State()
+    custom_photo = State()
+    custom_text = State()
 
 # Главное меню с 3 кнопками
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📸 Хардкод текст + стандартное фото")],
-        [KeyboardButton(text="✏️ Пользовательский текст + стандартное фото")],
-        [KeyboardButton(text="🖼️ Хардкод текст + своё фото")],
-        [KeyboardButton(text="❌ Отменить")]
+        [KeyboardButton(text="Дефолт сообщение")],
+        [KeyboardButton(text="Свой текст и дефолтная фотка")],
+        [KeyboardButton(text="Дефолт текст и своё фото")],
+        [KeyboardButton(text="Всё свое")],
+        [KeyboardButton(text="pidor")],
+        [KeyboardButton(text="Отменить")]
     ],
     resize_keyboard=True
 )
+
+def update_photo(HARDCODED_PHOTO_URL_MASSIVE):
+    HARDCODED_PHOTO_URL = random.choice(HARDCODED_PHOTO_URL_MASSIVE)
+    return HARDCODED_PHOTO_URL
 
 # Обработчик /start
 @dp.message(Command("start"))
 async def start_command(message: types.Message):
     await message.answer(
-        "Выберите тип отправки:",
+        "Выбери тип отправки:",
         reply_markup=main_keyboard
     )
 
-
+@dp.message(lambda message: message.text == "pidor")
+async def pidor(message:types.Message):
+    a = -1
+    await message.answer("Пошел спам")
+    words = ['заходите','сук','на','стрим','https://www.twitch.tv/zombyaak_doto']
+    while a < len(words)-1:
+        a+=1
+        await bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=words[a]
+        )
+        await asyncio.sleep(1)
+    if a >= len(words)-1 :
+        await message.answer("Дело сделано")
 @dp.message(lambda message: message.text == "Дефолт сообщение")
 async def send_hardcoded_with_photo(message: types.Message):
+    update_photo(HARDCODED_PHOTO_URL_MASSIVE)
     try:
-        # Отправляем фото с подписью в канал
         await bot.send_photo(
             chat_id=CHANNEL_ID,
-            photo=HARDCODED_PHOTO_URL,
+            photo=update_photo(HARDCODED_PHOTO_URL_MASSIVE),
             caption=HARDCODED_TEXT
         )
-        await message.answer("✅ Сообщение отправлено: стандартный текст + фото!")
+        
+        await message.answer("Доставил")
     except Exception as e:
         await message.answer(f"❌ Ошибка: {str(e)}")
 
 # Кнопка 2: Пользовательский текст + стандартное фото
-@dp.message(lambda message: message.text == "✏️ Пользовательский текст + стандартное фото")
+@dp.message(lambda message: message.text == "Свой текст и дефолтная фотка")
 async def request_custom_text(message: types.Message, state: FSMContext):
     await message.answer(
-        "Введите текст сообщения:",
+        "Сообщение вводи:",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(Form.waiting_for_text)
 
+#тут для кнопочки всё свое
+@dp.message(lambda message: message.text == "Всё свое")
+async def custom_text_photo(message: types.Message , state : FSMContext):
+    await message.answer(
+        "Сообщение введи",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await state.set_state(Form.custom_text)
+
+
+@dp.message(Form.custom_text)
+async def process_custom_text(message: types.Message, state : FSMContext):
+    await state.update_data(custom_text=message.text)
+    await message.answer("Дай фотку")
+    await state.set_state(Form.custom_photo)
+
+@dp.message(Form.custom_photo)
+async def process_custom_photo(message: types.Message, state: FSMContext):
+    try:
+        if not message.photo:
+            await message.answer("Где фото чувак")
+            return
+        photo_file_id = message.photo[-1].file_id
+        data = await state.get_data()
+        custom_text = data.get('custom_text','')
+        await bot.send_photo(
+            chat_id=CHANNEL_ID,
+            photo=photo_file_id,
+            caption=f"{custom_text}\nhttps://www.twitch.tv/zombyaak_doto"
+        )
+        await message.answer(
+            'Дело сделано',
+            reply_markup=main_keyboard
+        )
+    except Exception as e:
+        await message.answer(
+            f'Что-то пошло не так лови лог ошибки \n {e}',
+            reply_markup=main_keyboard
+        )
+    finally:
+        await state.clear()
 # Обработчик текста для кнопки 2
 @dp.message(Form.waiting_for_text)
 async def send_custom_text_with_photo(message: types.Message, state: FSMContext):
@@ -75,11 +149,11 @@ async def send_custom_text_with_photo(message: types.Message, state: FSMContext)
         # Отправляем стандартное фото с пользовательским текстом
         await bot.send_photo(
             chat_id=CHANNEL_ID,
-            photo=HARDCODED_PHOTO_URL,
-            caption=f"{message.text}\n\nОтправитель: {message.from_user.full_name}"
+            photo=update_photo(HARDCODED_PHOTO_URL_MASSIVE),
+            caption=f"{message.text}\nhttps://www.twitch.tv/zombyaak_doto"
         )
         await message.answer(
-            "✅ Сообщение отправлено: ваш текст + стандартное фото!",
+            "Дело сделано",
             reply_markup=main_keyboard
         )
     except Exception as e:
@@ -91,10 +165,10 @@ async def send_custom_text_with_photo(message: types.Message, state: FSMContext)
         await state.clear()
 
 # Кнопка 3: Хардкод текст + своё фото
-@dp.message(lambda message: message.text == "🖼️ Хардкод текст + своё фото")
+@dp.message(lambda message: message.text == "Дефолт текст и своё фото")
 async def request_custom_photo(message: types.Message, state: FSMContext):
     await message.answer(
-        "Отправьте фото:",
+        "Отправь фото:",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(Form.waiting_for_photo)
@@ -103,36 +177,36 @@ async def request_custom_photo(message: types.Message, state: FSMContext):
 @dp.message(Form.waiting_for_photo)
 async def send_hardcoded_text_with_photo(message: types.Message, state: FSMContext):
     try:
-        # Проверяем, что сообщение содержит фото
+
         if message.photo:
-            # Берем последнее (самое высокое качество) фото
+
             photo_file_id = message.photo[-1].file_id
             
-            # Отправляем пользовательское фото с хардкодным текстом
+            
             await bot.send_photo(
                 chat_id=CHANNEL_ID,
                 photo=photo_file_id,
-                caption=CUSTOM_TEXT
+                caption=f'{CUSTOM_TEXT} '
             )
             await message.answer(
-                "✅ Сообщение отправлено: хардкодный текст + ваше фото!",
+                "Дело сделано",
                 reply_markup=main_keyboard
             )
         else:
             await message.answer(
-                "❌ Вы отправили не фото. Попробуйте еще раз.",
+                "Ты отправил не фото. Попробуй еще раз.",
                 reply_markup=main_keyboard
             )
     except Exception as e:
         await message.answer(
-            f"❌ Ошибка: {str(e)}",
+            f"Ошибка: {str(e)}",
             reply_markup=main_keyboard
         )
     finally:
         await state.clear()
 
 # Обработчик отмены
-@dp.message(lambda message: message.text == "❌ Отменить")
+@dp.message(lambda message: message.text == "Отменить")
 async def cancel_action(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state:
