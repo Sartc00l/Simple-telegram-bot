@@ -1,10 +1,12 @@
 import random
 import logging
+import os 
+from pathlib import Path
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,FSInputFile
 
 
 # Конфигурация
@@ -20,10 +22,23 @@ HARDCODED_PHOTO_URL_MASSIVE = ['https://i.pinimg.com/736x/cc/34/7d/cc347d12e404f
                        'https://i.pinimg.com/1200x/4f/eb/17/4feb17bad5cd72657ea01ea0636af713.jpg',
                        'https://i.pinimg.com/736x/5e/8c/51/5e8c51327816359990e7d9bc9c529ca4.jpg',
                        'https://i.pinimg.com/736x/c4/92/74/c49274ba06f2bcaee5fe504b43debfa5.jpg',
-                       'https://i.pinimg.com/736x/98/aa/82/98aa82435e568d15da5b44014ee90277.jpg']
-
+                       'https://i.pinimg.com/736x/98/aa/82/98aa82435e568d15da5b44014ee90277.jpg',
+                       'https://i.pinimg.com/736x/2a/c9/e2/2ac9e290f5489685c3f0ee6be622c4a9.jpg',
+                       'https://i.pinimg.com/736x/aa/35/da/aa35daabfaf98d226dfc4fc5837b4ddd.jpg',
+                       'https://i.pinimg.com/736x/a5/23/55/a523557349e5c395c5f9001a5ddb6b81.jpg',
+                       'https://i.pinimg.com/736x/43/fb/8d/43fb8d33570cc10d25fe29449c234722.jpg',
+                       'https://i.pinimg.com/736x/df/e9/07/dfe9073768c1fa153d47a5ac12954407.jpg',
+                       'https://i.pinimg.com/736x/c6/07/91/c607915536f831181a797a916f34a5f7.jpg',
+                       'https://i.pinimg.com/736x/e0/ae/14/e0ae14fb8fef9aeef6b6373985242fa4.jpg',
+                       'https://i.pinimg.com/736x/d6/6f/3c/d66f3c656d061ff8b62ecba19448af8c.jpg',
+                       'https://i.pinimg.com/736x/7f/72/c7/7f72c7ef31a2fc34d55d0d5ea514a242.jpg',
+                       'https://i.pinimg.com/736x/56/44/54/564454677a5a35b28be0ac2b3fd8e2ad.jpg',
+                       'https://i.pinimg.com/736x/f6/39/80/f63980cbd1f3284cce781eee7e050076.jpg',
+                       'https://i.pinimg.com/736x/e9/48/f4/e948f43b8a000b1aae3c6f1e88fdd4cc.jpg',
+                       'https://i.pinimg.com/736x/2a/b0/57/2ab057f4c2b62828c0ad110f77d02628.jpg']
+PHOTO_DIR = Path('C:/Users/eshkere/Documents/python/tg_bots/telegram-zombyak/media/photos')
 CUSTOM_TEXT = "Гоугоу на стрим!\nhttps://www.twitch.tv/zombyaak_doto"
-"https://i.pinimg.com/736x/10/64/17/1064170e45d615504439a05be4d88c5c.jpg"  
+
 
 
 
@@ -55,6 +70,21 @@ main_keyboard = ReplyKeyboardMarkup(
 def update_photo(HARDCODED_PHOTO_URL_MASSIVE):
     HARDCODED_PHOTO_URL = random.choice(HARDCODED_PHOTO_URL_MASSIVE)
     return HARDCODED_PHOTO_URL
+def get_random_photo():
+    """Возвращает путь к случайному фото из папки"""
+    if not PHOTO_DIR.exists():
+        return None
+    
+    photos = []
+    # Правильное использование os.walk()
+    for root, _, files in os.walk(str(PHOTO_DIR)):  # Преобразуем Path в строку
+        for file in files:
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                photos.append(Path(root) / file)
+    
+    return random.choice(photos) if photos else None
+
+
 
 # Обработчик /start
 @dp.message(Command("start"))
@@ -80,11 +110,11 @@ async def pidor(message:types.Message):
         await message.answer("Дело сделано")
 @dp.message(lambda message: message.text == "Дефолт сообщение")
 async def send_hardcoded_with_photo(message: types.Message):
-    update_photo(HARDCODED_PHOTO_URL_MASSIVE)
+    photo_path = get_random_photo()
     try:
         await bot.send_photo(
             chat_id=CHANNEL_ID,
-            photo=update_photo(HARDCODED_PHOTO_URL_MASSIVE),
+            photo=FSInputFile(photo_path),
             caption=HARDCODED_TEXT
         )
         
@@ -142,14 +172,15 @@ async def process_custom_photo(message: types.Message, state: FSMContext):
         )
     finally:
         await state.clear()
-# Обработчик текста для кнопки 2
+
 @dp.message(Form.waiting_for_text)
 async def send_custom_text_with_photo(message: types.Message, state: FSMContext):
+    photo_path = get_random_photo()
     try:
-        # Отправляем стандартное фото с пользовательским текстом
+
         await bot.send_photo(
             chat_id=CHANNEL_ID,
-            photo=update_photo(HARDCODED_PHOTO_URL_MASSIVE),
+            photo=FSInputFile(photo_path),
             caption=f"{message.text}\nhttps://www.twitch.tv/zombyaak_doto"
         )
         await message.answer(
@@ -164,7 +195,6 @@ async def send_custom_text_with_photo(message: types.Message, state: FSMContext)
     finally:
         await state.clear()
 
-# Кнопка 3: Хардкод текст + своё фото
 @dp.message(lambda message: message.text == "Дефолт текст и своё фото")
 async def request_custom_photo(message: types.Message, state: FSMContext):
     await message.answer(
@@ -173,7 +203,7 @@ async def request_custom_photo(message: types.Message, state: FSMContext):
     )
     await state.set_state(Form.waiting_for_photo)
 
-# Обработчик фото для кнопки 3
+
 @dp.message(Form.waiting_for_photo)
 async def send_hardcoded_text_with_photo(message: types.Message, state: FSMContext):
     try:
